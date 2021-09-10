@@ -1,0 +1,3 @@
+{
+    "command": "dirb $url$"
+}

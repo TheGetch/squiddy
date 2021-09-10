@@ -1,0 +1,3 @@
+{
+    "command": "nmap -sV -vvv -T4 -A $host$ -p-"
+}
