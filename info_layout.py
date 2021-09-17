@@ -2,14 +2,16 @@ import os
 
 import PySimpleGUI as sg
 
-import parse_command
+
+def default_links():
+    pass
 
 
 def link(item, index):
     title = item["title"] if "title" in item else ""
     url = item["url"] if "url" in item else ""
     return [
-        sg.Text(str(index) + ") "),
+        sg.Text(str(index + 1) + ") "),
         sg.Text(
             title,
             expand_x=True,

@@ -22,7 +22,8 @@ def layout(ctx, attachment, attachment_id, host):
     command = parse_command.parse(command, host)
 
     attachment_types = ctx.get_attachment_types()
-    attachment_types.insert(0, "*Select attachment type*")
+    if attachment_types[0] != "*Select attachment type*":
+        attachment_types.insert(0, "*Select attachment type*")
 
     # right_click_menu = ["", ["Copy", "Paste", "Select All", "Cut"]]
     right_click_menu = ["", ["Copy", "Paste", "Select All"]]
