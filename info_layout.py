@@ -44,7 +44,7 @@ def layout(name, info):
 def window(ctx, info_name, info):
     layout_info = layout(info_name, info)
     return sg.Window(
-        "PenTest - Vulnerability Additional Info",
+        "Squiddy - Vulnerability Additional Info",
         layout_info,
         icon=ctx.icon(),
         finalize=True,

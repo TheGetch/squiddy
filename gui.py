@@ -71,7 +71,7 @@ layout_main = [
     ],
 ]
 
-ctx.windows["main"] = sg.Window("PenTest", layout_main, icon=ctx.icon(), finalize=True)
+ctx.windows["main"] = sg.Window("Squiddy", layout_main, icon=ctx.icon(), finalize=True)
 
 while True:  # Event Loop
     window, event, values = sg.read_all_windows()

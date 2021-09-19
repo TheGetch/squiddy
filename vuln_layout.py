@@ -329,7 +329,7 @@ def window(ctx, event, values):
 
     layout_vuln = layout(vuln, scan_id)
     return sg.Window(
-        "PenTest - Vulnerability",
+        "Squiddy - Vulnerability",
         layout_vuln,
         icon=ctx.icon(),
         finalize=True,
