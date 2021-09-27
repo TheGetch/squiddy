@@ -1,3 +1,4 @@
+from handlers import rem_vuln
 import json
 import os
 
@@ -10,10 +11,15 @@ class app:
         self.app = {}
         self.attachments = {}
         self.vulns = {}
-        self.saved = True
         self.windows = {}
         self.attachment_types = []
         self.choices = []
+        self.saved = True
+
+        self.app_name = ""
+        self.app_id = ""
+        self.app_url = ""
+        self.app_env = ""
 
         # Projects folder where project .json files are saved
         self.projects_folder = os.path.join(os.getcwd(), "projects")
@@ -28,27 +34,47 @@ class app:
         self.set_choices()
 
     def main(self):
-        return self.windows["main"]
+        return self.windows["main"] if "main" in self.windows else False
 
-    def get_prop(self, prop):
+    def get_win_prop(self, prop):
         return self.windows["main"][prop]
 
-    def set_prop(self, window, prop, value):
+    def set_win_prop(self, window, prop, value):
         self.windows[window][prop].update(value=value)
 
-    def set_prop_list(self, window, prop, value):
+    def set_win_prop_list(self, window, prop, value):
         self.windows[window][prop].update(value)
 
     def set_app(self, values):
         self.app = values
 
-    def get_saved(self):
-        return self.saved
+    @property
+    def saved(self):
+        """
+        The current project's saved state
+        :param value:    saved state True or False
+        :type data:     (boolean)
+        :return:        the current project's saved state
+        :rtype:         (boolean)
+        """
+        return self._saved
 
-    def set_saved(self, saved):
-        self.saved = saved
+    @saved.setter
+    def saved(self, value):
+        self._saved = value
+        if self.main():
+            if self._saved:
+                self.main().TKroot.title("Squiddy")
+            if not self._saved:
+                self.main().TKroot.title("Squiddy *")
+
+    @saved.deleter
+    def saved(self):
+        del self._saved
 
     def set_choices(self):
+        if not os.path.exists(self.templates_folder):
+            self.choices = []
         self.choices = sorted(
             [elem.replace(".json", "") for elem in os.listdir(self.templates_folder)]
         )
@@ -56,36 +82,41 @@ class app:
     def get_choices(self):
         return self.choices
 
+    # Set list of vulns
     def set_vulns(self, values):
         self.vulns = values
 
+    # Get vuln by id
     def get_vuln(self, id):
         if not id in self.vulns:
             return {}
         return self.vulns[id]
 
+    # Set vuln by id
     def set_vuln(self, id, values):
+        self.rem_vuln(id)
+        id = values["scanid"]
         self.vulns[id] = values
 
+    # Sorted vuln list on main ui
     def vuln_list(self):
         return [
             self.vulns[vuln]["scanid"] + " - " + self.vulns[vuln]["title"]
             for vuln in sorted(self.vulns)
         ]
 
+    # Number of vulns
     def vuln_count(self):
         return len(self.vulns)
 
+    # Remove vuln from list
     def rem_vuln(self, id):
         self.vulns.pop(id, None)
 
+    # Save project
     def save(self):
-        self.saved
-
         appname = clean_filename.clean(self.app["appname"])
         appid = clean_filename.clean(self.app["appid"])
-
-        sg.popup("Saving Project: ", self.app["appname"])
 
         filename = appname + "-" + appid + ".json"
 
@@ -99,7 +130,8 @@ class app:
             }
             json.dump(content, fp)
 
-        self.set_saved(True)
+        self.saved = True
+        sg.popup("Saved Project: ", self.app["appname"])
 
     def save_template(self, window, values):
         cwe = clean_filename.clean(values["cwe"])
@@ -163,36 +195,88 @@ class app:
         self.windows["main"] = main
 
     # App Name
-    def set_name(self, data):
-        value = self.get_prop_value(data, "appname")
-        self.set_app_prop("name", value)
+    @property
+    def app_name(self):
+        """
+        The current application name being tested
+        :param data:    data from the event loop
+        :type data:     (array)
+        :return:        the current application name
+        :rtype:         (str)
+        """
+        return self._app_name
 
-    def get_name(self):
-        return self.get_app_prop("name")
+    @app_name.setter
+    def app_name(self, data):
+        value = self.get_prop_value(data, "appname")
+        self._app_name = value
+
+    @app_name.deleter
+    def app_name(self):
+        del self._app_name
 
     # App ID
-    def set_id(self, data):
-        value = self.get_prop_value(data, "appid")
-        self.set_app_prop("id", value)
+    @property
+    def app_id(self):
+        """
+        The current application id being tested
+        :param data:    data from the event loop
+        :type data:     (array)
+        :return:        the current application id
+        :rtype:         (str)
+        """
+        return self._app_id
 
-    def get_id(self):
-        return self.get_app_prop("id")
+    @app_id.setter
+    def app_id(self, data):
+        value = self.get_prop_value(data, "appid")
+        self._app_id = value
+
+    @app_id.deleter
+    def app_id(self):
+        del self._app_id
 
     # App URL
-    def set_url(self, data):
-        value = self.get_prop_value(data, "appurl")
-        self.set_app_prop("url", value)
+    @property
+    def app_url(self):
+        """
+        The current application url being tested
+        :param data:    data from the event loop
+        :type data:     (array)
+        :return:        the current application url
+        :rtype:         (str)
+        """
+        return self._app_url
 
-    def get_url(self):
-        return self.get_app_prop("url")
+    @app_url.setter
+    def app_url(self, data):
+        value = self.get_prop_value(data, "appurl")
+        self._app_url = value
+
+    @app_url.deleter
+    def app_url(self):
+        del self._app_url
 
     # App Env
-    def set_env(self, data):
-        value = self.get_prop_value(data, "appenv")
-        self.set_app_prop("env", value)
+    @property
+    def app_env(self):
+        """
+        The current application environment being tested
+        :param data:    data from the event loop
+        :type data:     (array)
+        :return:        the current application environment
+        :rtype:         (str)
+        """
+        return self._app_env
 
-    def get_env(self):
-        return self.get_app_prop("env")
+    @app_env.setter
+    def app_env(self, data):
+        value = self.get_prop_value(data, "appenv")
+        self._app_env = value
+
+    @app_env.deleter
+    def app_env(self):
+        del self._app_env
 
     # App Props
     def set_app_prop(self, prop, value):

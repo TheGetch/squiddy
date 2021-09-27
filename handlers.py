@@ -1,10 +1,15 @@
 import json
 import os
+
+from urllib.parse import quote_plus
+
 import PySimpleGUI as sg
+import webbrowser
 
 import calculate_rating
 import info_layout
 import vuln_layout
+import attachment_layout
 
 prediction_list, input_text, sel_item = [], "", 0
 
@@ -12,12 +17,13 @@ prediction_list, input_text, sel_item = [], "", 0
 def state(ctx, event):
     """
     State monitors the GUI events for state changing actions.
-    Such as changing a vuln title or description
-    This enables the prompt to save to only happen when needed.
+    Such as changing a vulnerability title or description.
+    This enables the save prompt to only happen when needed.
     """
     if (
         event
         not in (
+            "About...",
             "-BOX-CWE",
             "-BOX-TITLE",
             "attachment_list",
@@ -28,18 +34,23 @@ def state(ctx, event):
             "info",
             "save_project",
             "vuln_list",
+            "__TIMEOUT__",
         )
         and not event.startswith("expand_")
         and not event.startswith("hide_")
         and not event.startswith("info_")
+        and not event.__contains__("::")
     ):
         print("marking as unsaved")
-        ctx.set_saved(False)
+        ctx.saved = False
 
 
 # Remove attachment
 def rem_attachment(ctx, values):
-    if len(values["attachment_list"]) < 1:
+    """
+    Remove attachment from the project
+    """
+    if not values["attachment_list"]:
         sg.popup_ok(
             "Please select an attachment from the list",
             title="Remove Attachment",
@@ -57,11 +68,15 @@ def rem_attachment(ctx, values):
     )
     if confirm is not None and confirm in ("Yes"):
         ctx.rem_attachment(attachment_id)
-        ctx.set_prop_list("main", "attachment_list", ctx.attachment_list())
+        ctx.set_win_prop_list("main", "attachment_list", ctx.attachment_list())
 
 
 # Get Vuln info links popup
 def vuln_info(ctx, window, values):
+    """
+    This is the '?' button on the vulnerability window.
+    When clicked, it displays a list of links assocated with a CWE
+    """
     data = window["info"].metadata
     info_name = values["vuln_name"] + "_info"
 
@@ -95,7 +110,10 @@ def vuln_info(ctx, window, values):
 
 
 def rem_vuln(ctx, values):
-    if len(values["vuln_list"]) < 1:
+    """
+    Remove vulnerability from the project
+    """
+    if not values["vuln_list"]:
         sg.popup_ok(
             "Please select a vulnerability from the list",
             title="Remove Vulnerability",
@@ -113,25 +131,31 @@ def rem_vuln(ctx, values):
     )
     if confirm is not None and confirm in ("Yes"):
         ctx.rem_vuln(vuln_id)
-        ctx.set_prop_list("main", "vuln_list", ctx.vuln_list())
+        ctx.set_win_prop_list("main", "vuln_list", ctx.vuln_list())
 
 
 def new_project(ctx):
+    """
+    Clears out the current project
+    """
     ctx.new_project()
-    ctx.set_prop("main", "appname", ctx.get_name())
-    ctx.set_prop("main", "appid", ctx.get_id())
-    ctx.set_prop("main", "appurl", ctx.get_url())
-    ctx.set_prop("main", "appenv", ctx.get_env())
-    ctx.set_prop_list("main", "vuln_list", ctx.vuln_list())
-    ctx.set_prop_list("main", "attachment_list", ctx.attachment_list())
+    ctx.set_win_prop("main", "appname", ctx.app_name())
+    ctx.set_win_prop("main", "appid", ctx.get_id())
+    ctx.set_win_prop("main", "appurl", ctx.get_url())
+    ctx.set_win_prop("main", "appenv", ctx.get_env())
+    ctx.set_win_prop_list("main", "vuln_list", ctx.vuln_list())
+    ctx.set_win_prop_list("main", "attachment_list", ctx.attachment_list())
 
 
 def save_project(ctx, values):
-    if len(values["appname"]) < 1:
+    """
+    Save current project
+    """
+    if not values["appname"]:
         sg.popup_ok("Please enter an App Name", title="Save Project", keep_on_top=True)
         return
 
-    if len(values["appid"]) < 1:
+    if not values["appid"]:
         sg.popup_ok("Please enter an App Id", title="Save Project", keep_on_top=True)
         return
 
@@ -140,6 +164,9 @@ def save_project(ctx, values):
 
 
 def load_project(ctx, values):
+    """
+    Loan an existing project .json file
+    """
     if not ctx.saved:
         confirm = sg.popup(
             "Save current project?",
@@ -161,31 +188,32 @@ def load_project(ctx, values):
         project_file = open(project_name, "r")
         data = json.load(project_file)
 
-        ctx.set_name(data)
-        ctx.set_id(data)
-        ctx.set_url(data)
-        ctx.set_env(data)
+        # ctx.app_name(data)
+        ctx.app_name = data
+        ctx.app_id = data
+        ctx.app_url = data
+        ctx.app_env = data
 
-        ctx.set_prop("main", "appname", ctx.get_name())
-        ctx.set_prop("main", "appid", ctx.get_id())
-        ctx.set_prop("main", "appurl", ctx.get_url())
-        ctx.set_prop("main", "appenv", ctx.get_env())
+        ctx.set_win_prop("main", "appname", ctx.app_name)
+        ctx.set_win_prop("main", "appid", ctx.app_id)
+        ctx.set_win_prop("main", "appurl", ctx.app_url)
+        ctx.set_win_prop("main", "appenv", ctx.app_env)
 
         ctx.set_vulns(data["vulns"] if data and "vulns" in data else {})
-        ctx.set_prop_list("main", "vuln_list", ctx.vuln_list())
+        ctx.set_win_prop_list("main", "vuln_list", ctx.vuln_list())
 
         ctx.set_attachments(
             data["attachments"] if data and "attachments" in data else {}
         )
-        ctx.set_prop_list("main", "attachment_list", ctx.attachment_list())
+        ctx.set_win_prop_list("main", "attachment_list", ctx.attachment_list())
 
         ctx.saved = True
 
 
 def new_edit_vuln(ctx, event, values):
     scan_id = None
-    if event == "edit_vuln":
-        if len(values["vuln_list"]) < 1:
+    if event.endswith("::edit_vuln"):
+        if not values["vuln_list"]:
             sg.popup_ok(
                 "Please select a vulnerability from the list",
                 title="Edit Vulnerability",
@@ -195,11 +223,12 @@ def new_edit_vuln(ctx, event, values):
 
         scan_id = values["vuln_list"][0].split(" - ")[0]
 
-    if event == "new_vuln":
-        new_vuln = True
+    if event.endswith("::new_vuln"):
         scan_id = "Scan-XXXX" + str(ctx.vuln_count())
 
     ctx.windows[scan_id] = vuln_layout.window(ctx, event, values)
+
+    vuln_layout.update_window(ctx, scan_id)
 
 
 def save_vuln(ctx, values):
@@ -211,10 +240,10 @@ def save_vuln(ctx, values):
     values.pop("-BOX-TITLE", None)
 
     ctx.set_vuln(vuln_id, values)
-    ctx.set_prop_list("main", "vuln_list", ctx.vuln_list())
+    ctx.set_win_prop_list("main", "vuln_list", ctx.vuln_list())
 
 
-def expandos(ctx, window, event):
+def expandos(window, event):
     text = window[event].metadata
     target = event.split("_")[1]
 
@@ -228,7 +257,7 @@ def expandos(ctx, window, event):
         window[event].metadata = "↗"
 
 
-def hideos(ctx, window, event):
+def hideos(window, event):
     text = window[event].metadata
     target = "col_" + event.split("_")[1]
 
@@ -306,3 +335,53 @@ def predictive_title(ctx, window, values):
         window["-BOX-TITLE-CONTAINER-"].update(visible=True)
     else:
         window["-BOX-TITLE-CONTAINER-"].update(visible=False)
+
+
+def explain(command):
+    """
+    Take the current attachment command and open it in explainshell.com
+    ExplainShell is a tool that breaks down the parameters of a linux command and explains what the parameters do
+    """
+    if not command:
+        return
+    explainshell = "https://explainshell.com/explain?cmd=" + quote_plus(command)
+    open_url(explainshell)
+
+
+def open_url(url):
+    """
+    Open URL in web browser
+    """
+    if not url:
+        return
+    webbrowser.open(url)
+
+
+def new_edit_attachment(ctx, event, values):
+    attachment_id = None
+
+    if event.endswith("::edit_attachment"):
+        if not values["attachment_list"]:
+            sg.popup_ok(
+                "Please select an attachment from the list",
+                title="Edit Attachment",
+                keep_on_top=True,
+            )
+            return
+
+        attachment_id = values["attachment_list"][0]
+
+    if event.endswith("::new_attachment"):
+        attachment_id = ""
+
+    attachment = ctx.get_attachment(attachment_id)
+
+    print("attachment_id", attachment_id)
+
+    ctx.windows[attachment_id] = attachment_layout.window(
+        ctx, attachment, attachment_id
+    )
+
+
+def update_attachment(ctx, window, values):
+    attachment_layout.update_window(window, values, ctx.attachments_folder, ctx.app_url)

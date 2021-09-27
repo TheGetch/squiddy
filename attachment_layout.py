@@ -4,9 +4,15 @@ import PySimpleGUI as sg
 
 import parse_command
 
-
-def expando(key):
-    return sg.Submit("↗", key=key, tooltip="Expand")
+menu_def = [
+    [
+        "&Attachment",
+        [
+            "&Save::save_attachment",
+        ],
+    ],
+    ["&Additional Info", ["&ExplainShell::explain"]],
+]
 
 
 def layout(ctx, attachment, attachment_id, host):
@@ -29,6 +35,7 @@ def layout(ctx, attachment, attachment_id, host):
     right_click_menu = ["", ["Copy", "Paste", "Select All"]]
 
     return [
+        [sg.Menu(menu_def, tearoff=False, pad=(200, 1))],
         [
             [
                 sg.Input(
@@ -57,12 +64,6 @@ def layout(ctx, attachment, attachment_id, host):
         [
             [
                 sg.Text("Results", size=(15, 1)),
-                sg.Column(
-                    [[expando("expand_results")]],
-                    element_justification="right",
-                    vertical_alignment="bottom",
-                    expand_x=True,
-                ),
             ],
             [
                 sg.Multiline(
@@ -70,10 +71,11 @@ def layout(ctx, attachment, attachment_id, host):
                     key="results",
                     size=(70, 5),
                     right_click_menu=right_click_menu,
+                    expand_x=True,
+                    expand_y=True,
                 )
             ],
         ],
-        [sg.Submit("Save", key="save")],
     ]
 
 
@@ -102,3 +104,14 @@ def update_window(window, value, templates_folder, host):
     window["command"].update(value=command)
     # if not value["attachment_id"]:
     #     window["attachment_id"].update(value=value["attachment_type"])
+
+
+def window(ctx, attachment, attachment_id):
+    layout_attachment = layout(ctx, attachment, attachment_id, ctx.app_url)
+    return sg.Window(
+        "Squiddy - Attachment",
+        layout_attachment,
+        icon=ctx.icon(),
+        finalize=True,
+        resizable=True,
+    )

@@ -12,30 +12,33 @@ status_options = ["Open", "Closed", "Closed Pending Confirmation"]
 mline_width = 67
 
 
-def expando(key):
-    # return sg.Submit("↗", key=key, tooltip="Expand")
-    return sg.Text("↗", key=key, tooltip="Expand", enable_events=True, metadata="↗")
-
-
-def hideo(key):
-    return sg.Text(
-        "(hide)",
-        key=key,
-        font="Consolas 8 underline",
-        enable_events=True,
-        metadata="hide",
-    )
-
-
 def section(title, content):
     return [
         [
-            sg.Text(title.title(), size=(15, 1)),
+            sg.Multiline(
+                content,
+                key=title,
+                size=(mline_width, 10),
+                expand_x=True,
+                expand_y=True,
+            ),
+        ],
+    ]
+
+
+def section_combo(title, content, options, default_value):
+    return [
+        [
             sg.Column(
                 [
                     [
-                        hideo("hide_" + title),
-                        expando("expand_" + title),
+                        sg.Combo(
+                            options,
+                            default_value=default_value,
+                            key="rating_" + title,
+                            readonly=True,
+                            enable_events=True,
+                        ),
                     ]
                 ],
                 element_justification="right",
@@ -43,58 +46,212 @@ def section(title, content):
                 expand_x=True,
             ),
         ],
-        sg.pin(
-            sg.Column(
-                [
-                    [sg.Multiline(content, key=title, size=(mline_width, 5))],
-                ],
-                key="col_" + title,
-            )
-        ),
+        [
+            sg.Multiline(
+                content,
+                key=title,
+                size=(mline_width, 10),
+                expand_x=True,
+                expand_y=True,
+            ),
+        ],
     ]
 
 
-def section_combo(title, content, options, default_value):
-    return (
+menu_def = [
+    [
+        "&Vulnerability",
         [
-            [
-                sg.Text(title.title(), size=(15, 1)),
-                sg.Column(
-                    [
-                        [
-                            hideo("hide_" + title),
-                            sg.Combo(
-                                options,
-                                default_value=default_value,
-                                key="rating_" + title,
-                                readonly=True,
-                                enable_events=True,
-                            ),
-                            expando("expand_" + title),
-                        ]
-                    ],
-                    element_justification="right",
-                    vertical_alignment="bottom",
-                    expand_x=True,
-                ),
-            ],
-            sg.pin(
-                sg.Column(
-                    [
-                        [sg.Multiline(content, key=title, size=(mline_width, 5))],
-                    ],
-                    key="col_" + title,
-                )
-            ),
+            "&Save::save_vuln",
+            "&Export::export",
         ],
-    )
+    ],
+    ["&Additional Info", ["&Links::info"]],
+]
 
 
-def layout(vuln, scan_id):
+def layout(scan_id):
     input_width = 45
     num_items_to_show = 4
 
-    print(vuln)
+    return [
+        [sg.Menu(menu_def, tearoff=False, pad=(200, 1))],
+        [
+            sg.Column(
+                [
+                    [sg.Input(key="vuln_name", default_text=scan_id, visible=False)],
+                    [
+                        sg.Text("Scan Id", size=(15, 1)),
+                        sg.Input(key="scanid", default_text=scan_id),
+                    ],
+                    [
+                        sg.Text("Title", size=(15, 1)),
+                        sg.Input("", key="title", enable_events=True),
+                    ],
+                    [
+                        sg.pin(
+                            sg.Column(
+                                [
+                                    [
+                                        sg.Listbox(
+                                            values=[],
+                                            size=(input_width, num_items_to_show),
+                                            enable_events=True,
+                                            key="-BOX-TITLE",
+                                            select_mode=sg.LISTBOX_SELECT_MODE_SINGLE,
+                                            no_scrollbar=True,
+                                            pad=((139, 0), (2, 2)),
+                                        )
+                                    ]
+                                ],
+                                key="-BOX-TITLE-CONTAINER-",
+                                pad=(0, 0),
+                                visible=False,
+                            )
+                        )
+                    ],
+                    [
+                        sg.Text("CWE", size=(15, 1)),
+                        sg.Input("", key="cwe", enable_events=True),
+                    ],
+                    [
+                        sg.pin(
+                            sg.Column(
+                                [
+                                    [
+                                        sg.Listbox(
+                                            values=[],
+                                            size=(input_width, num_items_to_show),
+                                            enable_events=True,
+                                            key="-BOX-CWE",
+                                            select_mode=sg.LISTBOX_SELECT_MODE_SINGLE,
+                                            no_scrollbar=True,
+                                            pad=((139, 0), (2, 2)),
+                                        )
+                                    ]
+                                ],
+                                key="-BOX-CWE-CONTAINER-",
+                                pad=(0, 0),
+                                visible=False,
+                            )
+                        )
+                    ],
+                    [
+                        sg.Text("Status", size=(15, 1)),
+                        sg.Combo(
+                            status_options,
+                            default_value="",
+                            key="status",
+                            readonly=True,
+                            enable_events=True,
+                        ),
+                    ],
+                    [
+                        sg.Text("Severity", size=(15, 1)),
+                        sg.Text(
+                            "",
+                            key="severity_rating",
+                            size=(40, 1),
+                            text_color="Black",
+                        ),
+                    ],
+                ],
+                element_justification="left",
+            ),
+            sg.Text(
+                "?",
+                key="info",
+                size=(1, 1),
+                tooltip="Links for vulnerability information",
+                enable_events=True,
+                visible=False,
+            ),
+        ],
+        [
+            sg.TabGroup(
+                [
+                    [
+                        sg.Tab(
+                            "Description",
+                            section("description", ""),
+                        ),
+                        sg.Tab(
+                            "Replication",
+                            section("replication", ""),
+                        ),
+                        sg.Tab(
+                            "Impact",
+                            section_combo("impact", "", impact_options, ""),
+                        ),
+                        sg.Tab(
+                            "Likelihood",
+                            section_combo(
+                                "likelihood",
+                                "",
+                                likelihood_options,
+                                "",
+                            ),
+                        ),
+                        sg.Tab(
+                            "Remediation",
+                            section("remediation", ""),
+                        ),
+                    ]
+                ],
+                tab_location="centertop",
+                border_width=5,
+                expand_x=True,
+                expand_y=True,
+            )
+        ],
+    ]
+
+
+def update_window_vuln(ctx, window, value):
+    window["-BOX-CWE-CONTAINER-"].update(visible=False)
+    window["-BOX-TITLE-CONTAINER-"].update(visible=False)
+
+    cwe, title = value.split(" - ")
+
+    template_path = os.path.join(ctx.templates_folder, value + ".json")
+    if not os.path.exists(template_path):
+        print("Unable to locate template file")
+        return
+
+    template_file = open(template_path, "r")
+
+    data = None
+    try:
+        data = json.load(template_file)
+    except:
+        pass
+
+    title = data["title"] if data and "title" in data else ""
+    cwe = data["cwe"] if data and "cwe" in data else ""
+
+    description = data["description"] if data and "description" in data else ""
+    impact = data["impact"] if data and "impact" in data else ""
+    likelihood = data["likelihood"] if data and "likelihood" in data else ""
+    remediation = data["remediation"] if data and "remediation" in data else ""
+
+    window["cwe"].Update(cwe)
+    window["title"].Update(title)
+    window["description"].update(value=description)
+    window["impact"].update(value=impact)
+    window["likelihood"].update(value=likelihood)
+    window["remediation"].update(value=remediation)
+    window["info"].metadata = data
+    window["replication"].update(value="")
+    window["rating_impact"].update(value="")
+    window["rating_likelihood"].update(value="")
+    window["severity_rating"].Update("", text_color="Black")
+    window["info"].metadata = data
+
+
+def update_window(ctx, scan_id):
+    window = ctx.windows[scan_id]
+    vuln = ctx.get_vuln(scan_id)
+    print(scan_id, vuln)
 
     # Description
     description = vuln["description"] if vuln and "description" in vuln else ""
@@ -144,167 +301,32 @@ def layout(vuln, scan_id):
     except:
         pass
 
-    return [
-        [
-            sg.Column(
-                [
-                    [sg.Input(key="vuln_name", default_text=scan_id, visible=False)],
-                    [
-                        sg.Text("Scan Id", size=(15, 1)),
-                        sg.Input(key="scanid", default_text=scan_id),
-                    ],
-                    [
-                        sg.Text("Title", size=(15, 1)),
-                        sg.Input(title, key="title", enable_events=True),
-                    ],
-                    [
-                        sg.pin(
-                            sg.Column(
-                                [
-                                    [
-                                        sg.Listbox(
-                                            values=[],
-                                            size=(input_width, num_items_to_show),
-                                            enable_events=True,
-                                            key="-BOX-TITLE",
-                                            select_mode=sg.LISTBOX_SELECT_MODE_SINGLE,
-                                            no_scrollbar=True,
-                                            pad=((139, 0), (2, 2)),
-                                        )
-                                    ]
-                                ],
-                                key="-BOX-TITLE-CONTAINER-",
-                                pad=(0, 0),
-                                visible=False,
-                            )
-                        )
-                    ],
-                    [
-                        sg.Text("CWE", size=(15, 1)),
-                        sg.Input(cwe, key="cwe", enable_events=True),
-                    ],
-                    [
-                        sg.pin(
-                            sg.Column(
-                                [
-                                    [
-                                        sg.Listbox(
-                                            values=[],
-                                            size=(input_width, num_items_to_show),
-                                            enable_events=True,
-                                            key="-BOX-CWE",
-                                            select_mode=sg.LISTBOX_SELECT_MODE_SINGLE,
-                                            no_scrollbar=True,
-                                            pad=((139, 0), (2, 2)),
-                                        )
-                                    ]
-                                ],
-                                key="-BOX-CWE-CONTAINER-",
-                                pad=(0, 0),
-                                visible=False,
-                            )
-                        )
-                    ],
-                    [
-                        sg.Text("Status", size=(15, 1)),
-                        sg.Combo(
-                            status_options,
-                            default_value=status,
-                            key="status",
-                            readonly=True,
-                            enable_events=True,
-                        ),
-                    ],
-                    [
-                        sg.Text("Severity", size=(15, 1)),
-                        sg.Text(
-                            severity,
-                            key="severity_rating",
-                            size=(40, 1),
-                            text_color=text_color,
-                        ),
-                    ],
-                ],
-                element_justification="left",
-            ),
-            sg.Column(
-                [
-                    [
-                        sg.Text(
-                            "💾",
-                            key="save_vuln",
-                            enable_events=True,
-                            tooltip="Save",
-                            font="Consolas 20",
-                        )
-                    ],
-                    [
-                        sg.Text(
-                            "↗",
-                            key="export",
-                            size=(1, 1),
-                            tooltip="Export as Template",
-                            enable_events=True,
-                        ),
-                        sg.Text(
-                            "?",
-                            key="info",
-                            size=(1, 1),
-                            tooltip="Links for vulnerability information",
-                            enable_events=True,
-                        ),
-                    ],
-                ],
-                element_justification="right",
-                vertical_alignment="top",
-            ),
-        ],
-        section("description", description),
-        [sg.HorizontalSeparator(pad=(5, 10))],
-        section("replication", replication),
-        [sg.HorizontalSeparator(pad=(5, 10))],
-        section_combo("impact", impact, impact_options, impact_rating),
-        [sg.HorizontalSeparator(pad=(5, 10))],
-        section_combo("likelihood", likelihood, likelihood_options, likelihood_rating),
-        [sg.HorizontalSeparator(pad=(5, 10))],
-        section("remediation", remediation),
-    ]
-
-
-def update_window_vuln(ctx, window, value):
-    window["-BOX-CWE-CONTAINER-"].update(visible=False)
-    window["-BOX-TITLE-CONTAINER-"].update(visible=False)
-
-    cwe, title = value.split(" - ")
-
-    template_path = os.path.join(ctx.templates_folder, value + ".json")
+    # Metadata for the Links button
+    template_name = f"{cwe} - {title}.json"
+    template_path = os.path.join(ctx.templates_folder, template_name)
     if not os.path.exists(template_path):
-        print("Unable to locate template file")
-        return
-
-    template_file = open(template_path, "r")
+        print("Unable to locate template file:", template_path)
 
     data = None
-    try:
-        data = json.load(template_file)
-    except:
-        pass
+    if os.path.exists(template_path):
+        template_file = open(template_path, "r")
+        try:
+            data = json.load(template_file)
+        except:
+            pass
 
-    title = data["title"] if data and "title" in data else ""
-    cwe = data["cwe"] if data and "cwe" in data else ""
-
-    description = data["description"] if data and "description" in data else ""
-    impact = data["impact"] if data and "impact" in data else ""
-    likelihood = data["likelihood"] if data and "likelihood" in data else ""
-    remediation = data["remediation"] if data and "remediation" in data else ""
-    # metadata = data["links"] if data and "links" in data else []
-
+    window["scanid"].Update(scan_id)
+    window["status"].Update(status)
     window["cwe"].Update(cwe)
     window["title"].Update(title)
     window["description"].update(value=description)
+    window["replication"].update(value=replication)
     window["impact"].update(value=impact)
     window["likelihood"].update(value=likelihood)
     window["remediation"].update(value=remediation)
+    window["rating_impact"].update(value=impact_rating)
+    window["rating_likelihood"].update(value=likelihood_rating)
+    window["severity_rating"].Update(severity, text_color=text_color)
     window["info"].metadata = data
 
 
@@ -312,7 +334,7 @@ def window(ctx, event, values):
     scan_id = None
 
     if event == "edit_vuln":
-        if len(values["vuln_list"]) < 1:
+        if not values["vuln_list"]:
             sg.popup_ok(
                 "Please select a vulnerability from the list",
                 title="Edit Vulnerability",
@@ -325,12 +347,11 @@ def window(ctx, event, values):
     if event == "new_vuln":
         scan_id = "Scan-XXXX" + str(ctx.vuln_count())
 
-    vuln = ctx.get_vuln(scan_id)
-
-    layout_vuln = layout(vuln, scan_id)
+    layout_vuln = layout(scan_id)
     return sg.Window(
         "Squiddy - Vulnerability",
         layout_vuln,
         icon=ctx.icon(),
         finalize=True,
+        resizable=True,
     )
