@@ -49,8 +49,15 @@ ctx = app.app()
 
 sg.SetOptions(icon=ctx.icon())
 
+
+def double_click(event):
+    print(event)
+
+
 right_click_url = ["", ["Open in browser"]]
 ctx.windows["main"] = main_layout.window(ctx, right_click_url)
+ctx.windows["main"]["vuln_list"].bind("<Double-Button-1>", "::edit_vuln")
+ctx.windows["main"]["attachment_list"].bind("<Double-Button-1>", "::edit_attachment")
 
 while True:  # Event Loop
     window, event, values = sg.read_all_windows(timeout=100)
@@ -60,7 +67,7 @@ while True:  # Event Loop
         print(window, event, values)
 
     # Exit
-    if event in (sg.WIN_CLOSED, "Exit"):
+    if event in (sg.WIN_CLOSED, "Exit") or event.endswith("::exit"):
         window.close()
         if window == ctx.main():
             break

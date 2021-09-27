@@ -26,15 +26,9 @@ def state(ctx, event):
             "About...",
             "-BOX-CWE",
             "-BOX-TITLE",
-            "attachment_list",
-            "edit_attachment",
-            "edit_vuln",
-            "existing_project",
-            "export",
-            "info",
-            "save_project",
-            "vuln_list",
             "__TIMEOUT__",
+            "attachment_list",
+            "vuln_list",
         )
         and not event.startswith("expand_")
         and not event.startswith("hide_")

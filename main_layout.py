@@ -7,22 +7,25 @@ menu_def = [
             "&New::new_project",
             "&Open::existing_project",
             "&Save::save_project",
-            "E&xit::KeyExit",
+            "---",
+            "E&xit::exit",
         ],
     ],
     [
-        "&Vulnerability",
+        "&Vulnerabilities",
         [
             "&New::new_vuln",
             "&Edit::edit_vuln",
+            "---",
             "&Remove::rem_vuln",
         ],
     ],
     [
-        "&Attachment",
+        "&Attachments",
         [
             "&New::new_attachment",
             "&Edit::edit_attachment",
+            "---",
             "&Remove::rem_attachment",
         ],
     ],

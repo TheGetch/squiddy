@@ -153,7 +153,7 @@ class app:
 
         values["links"] = (
             window["info"].metadata["links"]
-            if "links" in window["info"].metadata
+            if window["info"].metadata and "links" in window["info"].metadata
             else []
         )
 
