@@ -1,0 +1,3 @@
+{
+    "command": "https://www.shodan.io/host/$ip$"
+}

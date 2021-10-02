@@ -1,0 +1,9 @@
+{
+    "command": "python sqlmap.py -u \"$url$\" --batch --banner",
+    "links": [
+        {
+            "title": "sqlmap.org",
+            "url": "https://sqlmap.org/"
+        }
+    ]
+}

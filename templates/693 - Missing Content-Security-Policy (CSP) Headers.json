@@ -1,0 +1,26 @@
+{
+    "title": "Missing Content-Security-Policy (CSP) Headers",
+    "cwe": "693",
+    "description": "The Content Security Policy (CSP) HTTP header is used to secure the application from several different types of attacks on web applications such as XSS and clickjacking. CSP can restrict resources that a page can load and can restrict whether pages of the web application can be framed by pages of other sites. This header is missing from this application.",
+    "replication": "",
+    "rating_impact": "",
+    "impact": "The lack of CSP configuration does not pose a direct impact in-and-of itself, but can significantly reduce the risk a successful Cross-Site Scripting (XSS) vulnerability might introduce within the application. Should there be undiscovered XSS vulnerabilities within the Desktop Integration Services (DIS) application, the lack of CSP configuration could be expected to have limited adverse impacts.",
+    "rating_likelihood": "",
+    "likelihood": "Given no Cross-Site Scripting (XSS) vulnerabilities were discovered within the application, and that user input validation and filtering appeared to be properly implemented, it would be highly unlikely an adversary would find a vulnerability that a CSP configuration would assist in preventing.",
+    "remediation": "Work with the server administrators to enable this header in the web server configuration.",
+    "links": [
+        {
+            "title": "Content-Security-Policy - Can I Use?",
+            "url": "https://caniuse.com/mdn-http_headers_csp_content-security-policy"
+        },
+        {
+            "title": "Content-Security-Policy - MDN",
+            "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy"
+        },
+        {
+            "title": "CSP Evaluator",
+            "url": "https://csp-evaluator.withgoogle.com/"
+        }
+    ],
+    "required": "true"
+}

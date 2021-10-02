@@ -26,6 +26,7 @@ def state(ctx, event):
             "About...",
             "-BOX-CWE",
             "-BOX-TITLE",
+            "-TEMPLATES-LOADED-",
             "__TIMEOUT__",
             "attachment_list",
             "vuln_list",
@@ -35,97 +36,8 @@ def state(ctx, event):
         and not event.startswith("info_")
         and not event.__contains__("::")
     ):
-        print("marking as unsaved")
+        print("[State] marking as unsaved")
         ctx.saved = False
-
-
-# Remove attachment
-def rem_attachment(ctx, values):
-    """
-    Remove attachment from the project
-    """
-    if not values["attachment_list"]:
-        sg.popup_ok(
-            "Please select an attachment from the list",
-            title="Remove Attachment",
-            keep_on_top=True,
-        )
-        return
-
-    attachment_id = values["attachment_list"][0]
-
-    confirm = sg.popup(
-        "Are you sure you want to remove: " + attachment_id + "?",
-        title="Remove Attachment",
-        keep_on_top=True,
-        button_type=1,
-    )
-    if confirm is not None and confirm in ("Yes"):
-        ctx.rem_attachment(attachment_id)
-        ctx.set_win_prop_list("main", "attachment_list", ctx.attachment_list())
-
-
-# Get Vuln info links popup
-def vuln_info(ctx, window, values):
-    """
-    This is the '?' button on the vulnerability window.
-    When clicked, it displays a list of links assocated with a CWE
-    """
-    data = window["info"].metadata
-    info_name = values["vuln_name"] + "_info"
-
-    # Data metadata not defined on element, lets try to load it from the template file
-    if not data:
-        cwe = values["cwe"]
-        title = values["title"]
-        template_name = cwe + " - " + title + ".json"
-        template_path = os.path.join(ctx.templates_folder, template_name)
-        if not os.path.exists(template_path):
-            print("Unable to locate template file")
-
-        if os.path.exists(template_path):
-            template_file = open(template_path, "r")
-
-            try:
-                data = json.load(template_file)
-            except:
-                pass
-
-    # Data still not defined or if data does exist, it does not have a "links" param defined
-    if not data or not "links" in data:
-        sg.popup_ok(
-            "Vulnerability does not have any addtional info defined.",
-            title="Vulnerability Additonal Info",
-            keep_on_top=True,
-        )
-        return
-
-    ctx.windows[info_name] = info_layout.window(ctx, info_name, data)
-
-
-def rem_vuln(ctx, values):
-    """
-    Remove vulnerability from the project
-    """
-    if not values["vuln_list"]:
-        sg.popup_ok(
-            "Please select a vulnerability from the list",
-            title="Remove Vulnerability",
-            keep_on_top=True,
-        )
-        return
-
-    vuln_id = values["vuln_list"][0].split(" - ")[0]
-
-    confirm = sg.popup(
-        "Are you sure you want to remove: " + vuln_id + "?",
-        title="Remove Vulnerability",
-        keep_on_top=True,
-        button_type=1,
-    )
-    if confirm is not None and confirm in ("Yes"):
-        ctx.rem_vuln(vuln_id)
-        ctx.set_win_prop_list("main", "vuln_list", ctx.vuln_list())
 
 
 def new_project(ctx):
@@ -225,16 +137,88 @@ def new_edit_vuln(ctx, event, values):
     vuln_layout.update_window(ctx, scan_id)
 
 
-def save_vuln(ctx, values):
+def save_vuln(ctx, window, values):
     vuln_id = values["vuln_name"]
     ctx.rem_vuln(vuln_id)
 
     values.pop("vuln_name", None)
     values.pop("-BOX-CWE", None)
     values.pop("-BOX-TITLE", None)
+    values.pop(0, None)
+    values.pop(1, None)
 
     ctx.set_vuln(vuln_id, values)
     ctx.set_win_prop_list("main", "vuln_list", ctx.vuln_list())
+    window["vuln_name"].Update(value=values["scanid"])
+
+
+def rem_vuln(ctx, values):
+    """
+    Remove vulnerability from the project
+    """
+    if not values["vuln_list"]:
+        sg.popup_ok(
+            "Please select a vulnerability from the list",
+            title="Remove Vulnerability",
+            keep_on_top=True,
+        )
+        return
+
+    vuln_id = values["vuln_list"][0].split(" - ")[0]
+
+    confirm = sg.popup(
+        "Are you sure you want to remove: " + vuln_id + "?",
+        title="Remove Vulnerability",
+        keep_on_top=True,
+        button_type=1,
+    )
+    if confirm is not None and confirm in ("Yes"):
+        ctx.rem_vuln(vuln_id)
+        ctx.set_win_prop_list("main", "vuln_list", ctx.vuln_list())
+
+
+# Get Vuln info links popup
+def vuln_info(ctx, window, values):
+    """
+    This is the '?' button on the vulnerability window.
+    When clicked, it displays a list of links assocated with a CWE
+    """
+    data = window["info"].metadata
+    info_name = values["vuln_name"] + "_info"
+
+    # Data metadata not defined on element, lets try to load it from the template file
+    if not data:
+        cwe = values["cwe"]
+        title = values["title"]
+
+        template_path = ctx.get_template(cwe, title)
+
+        if not os.path.exists(template_path):
+            print(f"[Vuln Info] Unable to locate template file: {template_path}")
+            template_name = f"{cwe} - {title}.json"
+            template_path = os.path.join(ctx.templates_folder, template_name)
+
+        if not os.path.exists(template_path):
+            print(f"[Vuln Info] Unable to locate template file: {template_path}")
+
+        if os.path.exists(template_path):
+            template_file = open(template_path, "r")
+
+            try:
+                data = json.load(template_file)
+            except:
+                pass
+
+    # Data still not defined or if data does exist, it does not have a "links" param defined
+    if not data or not "links" in data:
+        sg.popup_ok(
+            "Vulnerability does not have any addtional info defined.",
+            title="Vulnerability Additonal Info",
+            keep_on_top=True,
+        )
+        return
+
+    ctx.windows[info_name] = info_layout.window(ctx, info_name, data)
 
 
 def expandos(window, event):
@@ -295,7 +279,9 @@ def predictive_cwe(ctx, window, values):
     prediction_list = []
     if text:
         prediction_list = [
-            item for item in ctx.get_choices() if item.lower().find(text) > -1
+            f"{'* ' if item[2] else ''}{item[0]} - {item[1]}"
+            for item in ctx.get_templates()
+            if item[3].lower().find(text) > -1
         ]
 
     window["-BOX-CWE"].update(values=prediction_list)
@@ -317,9 +303,18 @@ def predictive_title(ctx, window, values):
         input_text = text
 
     prediction_list = []
-    if text:
+    if text and text.find("*") == -1:
         prediction_list = [
-            item for item in ctx.get_choices() if item.lower().find(text) > -1
+            f"{'* ' if item[2] else ''}{item[0]} - {item[1]}"
+            for item in ctx.get_templates()
+            if item[3].lower().find(text) > -1
+        ]
+
+    if text and text.find("*") > -1:
+        prediction_list = [
+            f"{'* ' if item[2] else ''}{item[0]} - {item[1]}"
+            for item in ctx.get_templates()
+            if item[2]
         ]
 
     window["-BOX-TITLE"].update(values=prediction_list)
@@ -370,8 +365,6 @@ def new_edit_attachment(ctx, event, values):
 
     attachment = ctx.get_attachment(attachment_id)
 
-    print("attachment_id", attachment_id)
-
     ctx.windows[attachment_id] = attachment_layout.window(
         ctx, attachment, attachment_id
     )
@@ -379,3 +372,29 @@ def new_edit_attachment(ctx, event, values):
 
 def update_attachment(ctx, window, values):
     attachment_layout.update_window(window, values, ctx.attachments_folder, ctx.app_url)
+
+
+# Remove attachment
+def rem_attachment(ctx, values):
+    """
+    Remove attachment from the project
+    """
+    if not values["attachment_list"]:
+        sg.popup_ok(
+            "Please select an attachment from the list",
+            title="Remove Attachment",
+            keep_on_top=True,
+        )
+        return
+
+    attachment_id = values["attachment_list"][0]
+
+    confirm = sg.popup(
+        "Are you sure you want to remove: " + attachment_id + "?",
+        title="Remove Attachment",
+        keep_on_top=True,
+        button_type=1,
+    )
+    if confirm is not None and confirm in ("Yes"):
+        ctx.rem_attachment(attachment_id)
+        ctx.set_win_prop_list("main", "attachment_list", ctx.attachment_list())

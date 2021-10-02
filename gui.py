@@ -1,4 +1,6 @@
 import argparse
+import json
+import os
 import webbrowser
 
 import PySimpleGUI as sg
@@ -50,14 +52,13 @@ ctx = app.app()
 sg.SetOptions(icon=ctx.icon())
 
 
-def double_click(event):
-    print(event)
-
-
-right_click_url = ["", ["Open in browser"]]
-ctx.windows["main"] = main_layout.window(ctx, right_click_url)
+ctx.windows["main"] = main_layout.window(ctx)
 ctx.windows["main"]["vuln_list"].bind("<Double-Button-1>", "::edit_vuln")
 ctx.windows["main"]["attachment_list"].bind("<Double-Button-1>", "::edit_attachment")
+
+ctx.windows["main"].perform_long_operation(
+    lambda: ctx.load_templates(), "-TEMPLATES-LOADED-"
+)
 
 while True:  # Event Loop
     window, event, values = sg.read_all_windows(timeout=100)
@@ -77,6 +78,9 @@ while True:  # Event Loop
 
     # Handle events to control saved state
     handlers.state(ctx, event)
+
+    if event in ("-TEMPLATES-LOADED-"):
+        print(len(ctx.templates))
 
     # Main Window - About Menu
     if event in ("About..."):
@@ -111,7 +115,28 @@ while True:  # Event Loop
     if event.endswith("::save_project"):
         handlers.save_project(ctx, values)
 
-    if event in right_click_url[1]:
+    # Main Window - Name - Right click - Copy
+    if event.endswith("::copy_name"):
+        window.TKroot.clipboard_clear()
+        window.TKroot.clipboard_append(ctx.app_name)
+
+    # Main Window - ID - Right click - Copy
+    if event.endswith("::copy_id"):
+        window.TKroot.clipboard_clear()
+        window.TKroot.clipboard_append(ctx.app_id)
+
+    # Main Window - URL - Right click - Copy
+    if event.endswith("::copy_url"):
+        window.TKroot.clipboard_clear()
+        window.TKroot.clipboard_append(ctx.app_url)
+
+    # Main Window - Env - Right click - Copy
+    if event.endswith("::copy_env"):
+        window.TKroot.clipboard_clear()
+        window.TKroot.clipboard_append(ctx.app_env)
+
+    # Main Window - URL - Right click - Open Url
+    if event.endswith("::open_url"):
         handlers.open_url(values["appurl"])
 
     # New or Edit Vuln
@@ -120,7 +145,7 @@ while True:  # Event Loop
 
     # Save Vuln
     if event.endswith("::save_vuln"):
-        handlers.save_vuln(ctx, values)
+        handlers.save_vuln(ctx, window, values)
 
     # Remove Vuln
     if event.endswith("::rem_vuln"):

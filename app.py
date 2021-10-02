@@ -14,6 +14,7 @@ class app:
         self.windows = {}
         self.attachment_types = []
         self.choices = []
+        self.templates = []
         self.saved = True
 
         self.app_name = ""
@@ -82,6 +83,60 @@ class app:
     def get_choices(self):
         return self.choices
 
+    def load_template(self, file_name):
+        template_path = os.path.join(self.templates_folder, file_name)
+        template_data = open(template_path, "r")
+
+        data = None
+        try:
+            data = json.load(
+                template_data,
+            )
+        except:
+            pass
+
+        cwe = None
+        try:
+            cwe = data["cwe"]
+        except:
+            pass
+        title = None
+        try:
+            title = data["title"]
+        except:
+            pass
+        required = False
+        try:
+            required = data["required"]
+        except:
+            pass
+
+        return (cwe, title, required, template_path)
+
+    def load_templates(self):
+        if not os.path.exists(self.templates_folder):
+            return []
+        self.templates = [
+            self.load_template(file_name)
+            for file_name in os.listdir(self.templates_folder)
+        ]
+        return True
+
+    def get_templates(self):
+        return self.templates
+
+    def get_template(self, cwe, title):
+        filtered = list(
+            filter(
+                lambda template: template[0] == cwe and template[1] == title,
+                self.templates,
+            )
+        )
+        if filtered:
+            return filtered[0][3]
+
+        return ""
+
     # Set list of vulns
     def set_vulns(self, values):
         self.vulns = values
@@ -121,10 +176,13 @@ class app:
         filename = appname + "-" + appid + ".json"
 
         with open(os.path.join(self.projects_folder, filename), "w+") as fp:
-            self.app.pop("existing_project", None)
-            self.app.pop("vuln_list", None)
             content = {
-                "app": self.app,
+                "app": {
+                    "name": self.app_name,
+                    "id": self.app_id,
+                    "url": self.app_url,
+                    "env": self.app_env,
+                },
                 "vulns": self.vulns,
                 "attachments": self.attachments,
             }
@@ -208,7 +266,9 @@ class app:
 
     @app_name.setter
     def app_name(self, data):
-        value = self.get_prop_value(data, "appname")
+        value = self.get_prop_value(data, "name")
+        if not value:
+            value = self.get_prop_value(data, "appname")
         self._app_name = value
 
     @app_name.deleter
@@ -229,7 +289,9 @@ class app:
 
     @app_id.setter
     def app_id(self, data):
-        value = self.get_prop_value(data, "appid")
+        value = self.get_prop_value(data, "id")
+        if not value:
+            value = self.get_prop_value(data, "appid")
         self._app_id = value
 
     @app_id.deleter
@@ -250,7 +312,9 @@ class app:
 
     @app_url.setter
     def app_url(self, data):
-        value = self.get_prop_value(data, "appurl")
+        value = self.get_prop_value(data, "url")
+        if not value:
+            value = self.get_prop_value(data, "appurl")
         self._app_url = value
 
     @app_url.deleter
@@ -271,7 +335,9 @@ class app:
 
     @app_env.setter
     def app_env(self, data):
-        value = self.get_prop_value(data, "appenv")
+        value = self.get_prop_value(data, "env")
+        if not value:
+            value = self.get_prop_value(data, "appenv")
         self._app_env = value
 
     @app_env.deleter

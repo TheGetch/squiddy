@@ -32,12 +32,25 @@ menu_def = [
     ["&Help", "&About..."],
 ]
 
+right_click_name = ["", ["Copy::copy_name"]]
+right_click_id = ["", ["Copy::copy_id"]]
+right_click_url = ["", ["Copy::copy_url", "Open in browser::open_url"]]
+right_click_env = ["", ["Copy::copy_env"]]
+
 # Main window
-def layout(right_click_url):
+def layout():
     return [
         [sg.Menu(menu_def, tearoff=False, pad=(200, 1))],
-        [sg.Text("Name", size=(15, 1)), sg.Input(key="appname", enable_events=True)],
-        [sg.Text("ID", size=(15, 1)), sg.Input(key="appid", enable_events=True)],
+        [
+            sg.Text("Name", size=(15, 1)),
+            sg.Input(
+                key="appname", enable_events=True, right_click_menu=right_click_name
+            ),
+        ],
+        [
+            sg.Text("ID", size=(15, 1)),
+            sg.Input(key="appid", enable_events=True, right_click_menu=right_click_id),
+        ],
         [
             sg.Text("URL", size=(15, 1)),
             sg.Input(
@@ -46,7 +59,9 @@ def layout(right_click_url):
         ],
         [
             sg.Text("Environment", size=(15, 1)),
-            sg.Input(key="appenv", enable_events=True),
+            sg.Input(
+                key="appenv", enable_events=True, right_click_menu=right_click_env
+            ),
         ],
         [sg.HorizontalSeparator(pad=(5, 10))],
         [sg.Text("Vulnerabilities", size=(15, 1))],
@@ -74,10 +89,10 @@ def layout(right_click_url):
     ]
 
 
-def window(ctx, right_click_url):
+def window(ctx):
     return sg.Window(
         "Squiddy",
-        layout(right_click_url),
+        layout(),
         icon=ctx.icon(),
         finalize=True,
     )

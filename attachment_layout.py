@@ -16,7 +16,6 @@ menu_def = [
 
 
 def layout(ctx, attachment, attachment_id, host):
-    print("attachment", attachment, attachment_id)
     command = attachment["command"] if attachment and "command" in attachment else ""
     results = attachment["results"] if attachment and "results" in attachment else ""
     attachment_type = (
@@ -80,13 +79,11 @@ def layout(ctx, attachment, attachment_id, host):
 
 
 def update_window(window, value, templates_folder, host):
-    print(value["attachment_type"], templates_folder)
-
     command_name = value["attachment_type"].lower()
 
     template_path = os.path.join(templates_folder, command_name + ".json")
     if not os.path.exists(template_path):
-        print("Unable to locate template file")
+        print("[Attachment] Unable to locate template file")
         return
 
     template_file = open(template_path, "r")

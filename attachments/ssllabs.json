@@ -1,0 +1,3 @@
+{
+    "command": "https://www.ssllabs.com/ssltest/analyze.html?viaform=on&d=$url$&hideResults=on"
+}

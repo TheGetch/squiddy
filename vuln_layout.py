@@ -154,6 +154,7 @@ def layout(scan_id):
                             size=(40, 1),
                             text_color="Black",
                         ),
+                        sg.Input(key="severity", visible=False),
                     ],
                 ],
                 element_justification="left",
@@ -211,11 +212,12 @@ def update_window_vuln(ctx, window, value):
     window["-BOX-CWE-CONTAINER-"].update(visible=False)
     window["-BOX-TITLE-CONTAINER-"].update(visible=False)
 
+    value = value.replace("* ", "")
     cwe, title = value.split(" - ")
 
-    template_path = os.path.join(ctx.templates_folder, value + ".json")
+    template_path = ctx.get_template(cwe, title)
     if not os.path.exists(template_path):
-        print("Unable to locate template file")
+        print("[Vuln] Unable to locate template file")
         return
 
     template_file = open(template_path, "r")
@@ -251,7 +253,6 @@ def update_window_vuln(ctx, window, value):
 def update_window(ctx, scan_id):
     window = ctx.windows[scan_id]
     vuln = ctx.get_vuln(scan_id)
-    print(scan_id, vuln)
 
     # Description
     description = vuln["description"] if vuln and "description" in vuln else ""
@@ -302,19 +303,21 @@ def update_window(ctx, scan_id):
         pass
 
     # Metadata for the Links button
-    template_name = f"{cwe} - {title}.json"
-    template_path = os.path.join(ctx.templates_folder, template_name)
-    if not os.path.exists(template_path):
-        print("Unable to locate template file:", template_path)
-
     data = None
-    if os.path.exists(template_path):
-        template_file = open(template_path, "r")
-        try:
-            data = json.load(template_file)
-        except:
-            pass
+    if cwe and title:
+        template_name = f"{cwe} - {title}.json"
+        template_path = os.path.join(ctx.templates_folder, template_name)
 
+        if os.path.exists(template_path):
+            template_file = open(template_path, "r")
+            try:
+                data = json.load(template_file)
+            except:
+                pass
+        else:
+            print("[Vuln] Unable to locate template file:", template_path)
+
+    window["vuln_name"].Update(scan_id)
     window["scanid"].Update(scan_id)
     window["status"].Update(status)
     window["cwe"].Update(cwe)
@@ -327,6 +330,7 @@ def update_window(ctx, scan_id):
     window["rating_impact"].update(value=impact_rating)
     window["rating_likelihood"].update(value=likelihood_rating)
     window["severity_rating"].Update(severity, text_color=text_color)
+    window["severity"].update(value=severity)
     window["info"].metadata = data
 
 
